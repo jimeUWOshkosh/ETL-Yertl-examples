@@ -1,0 +1,197 @@
+%title: ETL::Yertl
+%author: James Edwards
+%date: 2019-28-June
+
+-> Extract, Transform and Load with ETL::Yertl : Slide 1 <-
+=========
+
+From the POD of ETL::Yertl *with some additions needed*
+
+use ETL::Yertl;   # alt1.pl
+*use ETL::Yertl::Transform;*
+my $xform = file( '<', 'employees.yaml' )
+        | transform( 
+            sub { 
+                $_->{salary} \*= 1.05;
+                *return $_;*
+	    } 
+        ) >> stdout;
+$xform->run;
+
+
+---------
+
+-> # Small hurdle with JSON : Slide 2 <-
+
+I'm gonna say ETL::Yertl's YAML must be a wee bit different.
+
+This program, *atl1.pl*, is only for Yertl/YAML files and according to
+errors  ( alt1.pl using employees.json )
+
+... my $xform = file( '<', 'employees.json' ) ....
+
+   YAML::XS::Load Error: The problem:
+    did not find expected <document start>
+    was found at document: 2, line: 6, column: 1
+
+ETL::Yertl's JSON is NOT ETL::Yertl's YAML.
+
+The usually MadMongers' war on words between JT Smith and Don Smith =>
+Don Smith, "JSON is YAML, not all YAML is JSON."
+
+-------------------------------------------------
+
+-> # ETL:Yertl's Power Tools : Slide 3 <-
+
+If you want to handle CSV or JSON, using something 
+like alt1.pl, you can use the ETL::Yertl toolbox
+
+ETL::Yertl has some command line tools ( *yfrom, yto* ).
+
+# Convert file to Yertl's format
+$ *yfrom* csv  file.csv  > work.yml
+$ *yfrom* json file.json > work.yml
+
+# Convert file to output format
+$ *yto* csv  work.yml
+$ *yto* json work.yml
+
+-------------------------------------------------
+
+-> # ETL::Yertl's STDIN : Slide 4 <-
+
+Now lets change alt1.pl to use STDIN
+
+use ETL::Yertl *'stdin'* ;     # alt3.pl
+use ETL::Yertl::Transform;
+    my $xform = *stdin()*
+        | transform( sub { 
+                             $_->{salary} \*= 1.05;
+                             return $_;
+	                 } 
+        ) >> stdout;
+    $xform->run;
+
+-------------------------------------------------
+
+-> # Fun with alt3.pl : Slide 5 <-
+
+$ cat employees.csv
+name,age,salary
+John's name,20,10000
+Kate,18,100000
+
+$ *yfrom* csv employees.csv | perl alt3.pl
+\---
+age: '20'
+name: John's name
+salary: 10500
+\---
+age: '18'
+name: Kate
+salary: 105000
+
+-------------------------------------------------
+
+-> # More Robust ETL::Yertl Programming : Slide 6 <-
+
+Say you need to transform a CSV file for a client
+and munge it really well. Lets see what alt3.pl will do
+
+$ cat employees.csv
+name,age,salary
+John's name,20,10000
+Kate,18,100000
+
+$ *yfrom* csv employees.csv |perl alt3.pl | *yto* csv
+age,name,salary
+20,"John's name",10500
+18,Kate,105000
+
+You'll notice that the order of the fields has changed
+
+-------------------------------------------------
+
+-> # More Robust ETL::Yertl Programming Continued : Slide 7 <-
+
+ETL::Yertl::Transform wants to output YAML. We'll modify alt3.pl and 
+remove the ETL::Yertl output and create our own
+
+use ETL::Yertl 'stdin';    *\# alt4.pl *
+use ETL::Yertl::Transform;
+*my $called = 0;*
+my @attributes = qw(name address age salary);
+my $xform = stdin()
+    | transform( sub { if (not $called) { say join( ',', @attributes ); }
+                       *$called++; *
+                       my $d = {name => $_->{name},age => $_->{age},salary => $_->{salary},
+                                address => '1313 Mocking Bird Lane',                     };
+                       say join( ',', map { $d->{$_} } @attributes );
+                       return $_;
+      } );   # No * '>> stdout'*
+$xform->run;
+
+-------------------------------------------------
+
+-> # More Robust ETL::Yertl Programming Continued : Slide 8 <-
+
+Now we get 
+
+$ *yfrom* csv employees.csv | perl alt4.pl   
+name,address,age,salary
+John's name,1313 Mocking Bird Lane,20,10000
+Kate,1313 Mocking Bird Lane,18,100000
+
+-------------------------------------------------
+
+-> # Where can I find Jim's stuff : Slide 8 <-
+
+I have opened a github issue about Unicode support.
+
+Complete archive will be on the MadMongers' github page
+    [MadMongers/07-2019-ETL-Yertl](https://github.com/MadMongers/07-2019-ETL-Yertl)
+
+
+Also I have two programs, *xls2csv* and *xlsx2csv*, in the repository
+and both do UNICODE. With one caveat, it will only process the
+first worksheet of the document. I empower you to make what ever
+change(s) you desire.
+
+-------------------------------------------------
+
+-> # Doug Bell's Fun with ETL::Yertl : Slide 9 <-
+
+Senor Bell also has
+
+*ysql* utility to read/write YAML documents to SQL databases
+[Managing SQL Data with Yertl](http://preaction.me/blog/2015/01/21/managing-sql-data-with-yertl.html)
+Posted on 2015-01-21 
+
+*ygrok* utility to parse plain text into YAML documents.
+[ygrok - Parse Plain Text into Data Structures](http://blogs.perl.org/users/preaction/2015/11/ygrok---parse-plain-text-into-data-structures.html)
+
+-------------------------------------------------
+
+-> # Doug Bell's Fun with ETL::Yertl : Continued : Slide 10 <-
+
+[Application Metrics with Yertl](http://blogs.perl.org/users/preaction/2017/10/application-metrics-with-yertl.html)
+Posted on 2017-Oct-18
+
+[Everyday ETL With Yertl](http://preaction.me/blog/2018/09/09/everyday-etl-with-yertl/)
+Posted on 2018-09-09
+
+[Yertl - ETL with a Shell](http://preaction.me/yertl/)
+
+-------------------------------------------------
+
+-> The End. Qs <-
+
+My Professional Bull Riders flack jacket sponsors are:     ;-)
+
+   [The Game Crafter](https://www.thegamecrafter.com)       Make your *dream* Board Game come TRUE
+
+   [Table Top Events](https://tabletop.events)       Your *next* Convention Management System (in the cloud)
+                                          Coming soon with AI BlockChain (  ;-)  )**2
+
+   [Twit.tv](https://twit.tv)                If it has a chip in it, we'll be talking about it
+
