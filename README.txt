@@ -16,7 +16,7 @@ data
    mongerss.xlsx
    mongers.xls
 
-Exel to CSV (one worksheet only)
+Excel to CSV (one worksheet only)
    xls2csv.pm
    xlsx2csv.pm
 
